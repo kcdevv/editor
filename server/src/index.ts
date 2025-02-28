@@ -6,7 +6,7 @@ interface User {
     name: string;
 }
 
-const users: User[] = []; // {socket, room, name}
+const users: User[] = []; 
 
 const wss = new WebSocketServer({ port: 8080 });
 wss.on("connection", (ws) => {
@@ -35,6 +35,7 @@ wss.on("connection", (ws) => {
               room: messagedata.room,
               name: messagedata.name,
               message: messagedata.message,
+              output: messagedata.output
             })
           );
         }
