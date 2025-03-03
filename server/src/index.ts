@@ -1,18 +1,13 @@
 import WebSocket, { WebSocketServer } from "ws";
 
-interface User {
-  socket: WebSocket;
-  room: string;
-  name: string;
-}
-
 interface Room {
+  slug: string;
   code: string;
   output: string;
+  sockets: WebSocket[];
 }
 
-const users: User[] = [];
-const rooms: Record<string, Room> = {};
+const rooms: Room[] = [];
 
 const wss = new WebSocketServer({ port: 8080 });
 
@@ -21,56 +16,61 @@ wss.on("connection", (ws) => {
     const messageData = JSON.parse(message);
 
     if (messageData.type === "join") {
-      users.push({
-        socket: ws,
-        room: messageData.room,
-        name: messageData.name,
-      });
-      
-      if (!rooms[messageData.room]) {
-        rooms[messageData.room] = { code: "", output: "" };
+      const room = rooms.find((room) => room.slug === messageData.room);
+      if (!room) {
+        rooms.push({
+          slug: messageData.room,
+          code: "",
+          output: "",
+          sockets: [ws],
+        });
+        ws.send(
+          JSON.stringify({
+            type: "joined",
+            room: messageData.room,
+            code: "",
+            output: "",
+          })
+        );
+      } else {
+        room.sockets.push(ws);
+        ws.send(
+          JSON.stringify({
+            type: "joined",
+            room: room,
+            code: room.code,
+            output: room.output,
+          })
+        );
       }
-      console.log(messageData);
-      
-      ws.send(
-        JSON.stringify({
-          type: "joined",
-          room: messageData.room,
-          name: messageData.name,
-          code: rooms[messageData.room].code,
-          output: rooms[messageData.room].output,
-        })
-      );
     }
-    
-    if (messageData.type === "code") {
-      if (rooms[messageData.room]) {
-        rooms[messageData.room].code = messageData.message;
-        rooms[messageData.room].output = messageData.output;
-      }
 
-      console.log(messageData)
-      
-      users.forEach((user) => {
-        if (user.room === messageData.room) {
-          user.socket.send(
-            JSON.stringify({
-              type: "message",
-              room: messageData.room,
-              name: messageData.name,
-              message: messageData.message,
-              output: messageData.output,
-            })
-          );
-        }
-      });
+    if (messageData.type === "code") {
+      // console.log(messageData);
+
+      const room = rooms.find((room) => room.slug === messageData.room);
+      if (room) {
+        room.code = messageData.code;
+        console.log(room);
+        room.sockets.forEach((socket) => {
+          if (socket !== ws) {
+            socket.send(
+              JSON.stringify({
+                type: "code",
+                code: messageData.code,
+                output: messageData.output,
+              })
+            );
+          }
+        });
+      }
     }
   });
 
   ws.on("close", () => {
-    const index = users.findIndex((user) => user.socket === ws);
-    if (index !== -1) {
-      users.splice(index, 1);
+    const room = rooms.find((room) => room.sockets.includes(ws));
+    if (room) {
+      room.sockets = room.sockets.filter((socket) => socket !== ws);
     }
   });
 });

@@ -18,19 +18,9 @@ const App = () => {
       newSocket.send(
         JSON.stringify({
           type: "join",
-          room,
-          name: "John Doe",
+          room
         })
       );
-    };
-
-    newSocket.onmessage = (event) => {
-      console.log("Message received", event.data);
-      const data = JSON.parse(event.data);
-      if (data.type === "message") {
-        setCode(data.message);
-        setOutput(data.output);
-      }
     };
 
     return () => {

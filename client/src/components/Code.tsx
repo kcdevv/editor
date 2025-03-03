@@ -22,8 +22,8 @@ const Code = ({
     const handleMessage = (event: MessageEvent) => {
     //   console.log("Message received", event.data);
       const data = JSON.parse(event.data);
-      if (data.type === "message") {
-        setCode(data.message);
+      if (data.type === "code") {
+        setCode(data.code);
         setOutput(data.output);
       }
     };
@@ -44,9 +44,8 @@ const Code = ({
     const message = JSON.stringify({
       type: "code",
       room,
-      name: "John Doe",
-      message: code,
-      output: output,
+      code,
+      output,
     });
 
     console.log("Sending message:", message);
